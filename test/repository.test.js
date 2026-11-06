@@ -177,3 +177,60 @@ describe('excluded terms', () => {
     })
   })
 })
+
+describe('repository channels', () => {
+  const UCID = 'UCcefcZRL2oaA_uBNeo5UOWg'
+
+  function loadWith (channels) {
+    resetForTesting(testDir)
+    fs.writeFileSync(path.join(testDir, 'channels.json'), JSON.stringify(channels))
+    return initRepository(testDir)
+  }
+
+  test('adds a channel with its display name and id', () => {
+    repo.addChannel({ name: 'ycombinator', displayName: 'Y Combinator', channelId: UCID })
+    assert.deepEqual(repo.getChannels(), [{ name: 'ycombinator', displayName: 'Y Combinator', channelId: UCID }])
+    assert.equal(repo.channelExists('ycombinator'), true)
+    assert.equal(repo.channelExists(UCID), true)
+    assert.equal(repo.findChannel(UCID).name, 'ycombinator')
+  })
+
+  test('updates a channel', () => {
+    repo.addChannel('ycombinator')
+    repo.updateChannel('ycombinator', { displayName: 'Y Combinator' })
+    assert.deepEqual(repo.getChannels(), [{ name: 'ycombinator', displayName: 'Y Combinator' }])
+    const saved = JSON.parse(fs.readFileSync(repo.paths.channels, 'utf8'))
+    assert.deepEqual(saved, [{ name: 'ycombinator', displayName: 'Y Combinator' }])
+  })
+
+  test('on load, fixes names that are links or start with @', () => {
+    const r = loadWith([
+      { name: '@https://www.youtube.com/@ycombinator' },
+      { name: 'https://www.youtube.com/@veritasium/videos' },
+      { name: '@fireship' },
+      { name: `https://youtube.com/channel/${UCID}` },
+      { name: 'plain' }
+    ])
+    assert.deepEqual(r.getChannels().map(c => c.name), ['ycombinator', 'veritasium', 'fireship', UCID, 'plain'])
+    const saved = JSON.parse(fs.readFileSync(r.paths.channels, 'utf8'))
+    assert.deepEqual(saved.map(c => c.name), ['ycombinator', 'veritasium', 'fireship', UCID, 'plain'])
+  })
+
+  test('on load, drops a fixed name that is already in the list', () => {
+    const r = loadWith([{ name: 'ycombinator', displayName: 'Y Combinator' }, { name: '@https://www.youtube.com/@ycombinator' }])
+    assert.deepEqual(r.getChannels(), [{ name: 'ycombinator', displayName: 'Y Combinator' }])
+  })
+
+  test('on load, keeps names that need YouTube to fix (video or /c/ links)', () => {
+    const r = loadWith([{ name: 'https://youtu.be/u-8KpXcPYCw' }])
+    assert.deepEqual(r.getChannels(), [{ name: 'https://youtu.be/u-8KpXcPYCw' }])
+  })
+
+  test('renames a channel and its videos', () => {
+    const r = loadWith([{ name: 'https://youtu.be/u-8KpXcPYCw' }])
+    r.upsertVideos([{ id: 'v1', channelName: 'https://youtu.be/u-8KpXcPYCw', title: 't' }])
+    r.renameChannel('https://youtu.be/u-8KpXcPYCw', { name: 'ycombinator', displayName: 'Y Combinator', channelId: UCID })
+    assert.deepEqual(r.getChannels(), [{ name: 'ycombinator', displayName: 'Y Combinator', channelId: UCID }])
+    assert.equal(r.getVideo('v1').channelName, 'ycombinator')
+  })
+})

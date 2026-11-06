@@ -1,8 +1,12 @@
-import { test } from 'node:test'
+import { test, before, after } from 'node:test'
 import assert from 'assert'
-import { getVideosFor, getVideo } from '../lib/youtube.js'
+import { getVideosFor, getVideo, setYoutubeDeps, resetYoutubeDeps } from '../lib/youtube.js'
 import { updateAndPersistVideosForChannel } from '../lib/update-videos.js'
 import { ScraperError } from '../lib/scraper-errors.js'
+
+// These tests cover the channel page parser, the fallback when yt-dlp fails.
+before(() => setYoutubeDeps({ runYtDlp: async () => { throw new Error('yt-dlp off in this test') } }))
+after(() => resetYoutubeDeps())
 
 test('throws structured error when HTML has no ytInitialData', async () => {
   const originalFetch = global.fetch
