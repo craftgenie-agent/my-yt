@@ -33,7 +33,11 @@ class ChannelsList extends HTMLElement {
     this.innerHTML = /* html */`
       <details class="channels-container">
         <summary>Channels</summary>
-        <div>${this.channels.map(channel => /* html */`<span tabindex=0 data-channel="${channel}" class="channel">${channel}</span>`).join('')}</div>
+        <div>${this.channels.map(channel => {
+          const name = typeof channel === 'string' ? channel : channel.name
+          const label = (typeof channel === 'string' ? channel : channel.displayName) || name
+          return /* html */`<span tabindex=0 data-channel="${escapeHtml(name)}" title="@${escapeHtml(name)}" class="channel">${escapeHtml(label)}</span>`
+        }).join('')}</div>
       </details>
     `
 
@@ -53,7 +57,7 @@ class ChannelsList extends HTMLElement {
   channelClick (event) {
     const $searchInput = document.querySelector('#search')
     if (!$searchInput) return
-    const channel = `@${event.target.innerText || event.target.innerHTML}`
+    const channel = `@${event.target.dataset.channel}`
 
     const channels = this.querySelectorAll('.channel')
     if ($searchInput.value === channel) {
@@ -69,3 +73,7 @@ class ChannelsList extends HTMLElement {
   }
 }
 customElements.define('channels-list', ChannelsList)
+
+function escapeHtml (text = '') {
+  return String(text).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
+}
