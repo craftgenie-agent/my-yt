@@ -1,6 +1,7 @@
 import { updateAndPersistVideosForChannel } from '../../../lib/update-videos.js'
 import { broadcastMessage, parseBody } from '../_helpers.js'
 import { getRepository } from '../../service-container.js'
+import { resolveChannel, ChannelInputError } from '../../../lib/channel-input.js'
 
 export function getChannelHandler (req, res, connections = [], state = {}) {
   const repo = getRepository()
@@ -10,28 +11,50 @@ export function getChannelHandler (req, res, connections = [], state = {}) {
 }
 
 export async function addChannelHandler (req, res, connections = []) {
+  try {
+    return await addChannel(req, res, connections)
+  } catch (error) {
+    console.error('[channels] Could not add the channel:', error)
+    if (!res.headersSent) return sendJson(res, 500, { error: 'Could not add this channel because of an error in the app. Check the app logs.' })
+  }
+}
+
+async function addChannel (req, res, connections) {
   const repo = getRepository()
   const parsed = await parseBody(req, res)
   if (parsed === null) return
-  let { name } = parsed
-  name = name.trim()
-  name = name.startsWith('@') ? name.substring(1) : name
+  const input = typeof parsed.name === 'string' ? parsed.name.trim() : ''
 
-  if (repo.channelExists(name)) {
-    res.writeHead(409)
-    return res.end('Channel already added')
+  let channel
+  try {
+    channel = await resolveChannel(input)
+  } catch (error) {
+    if (!(error instanceof ChannelInputError)) throw error
+    return sendJson(res, error.status, { error: error.message })
   }
 
-  const videos = await updateAndPersistVideosForChannel(name)
+  const existing = repo.findChannel(channel.name) || (channel.channelId && repo.findChannel(channel.channelId))
+  if (existing) {
+    return sendJson(res, 409, { error: `Channel already added: ${existing.displayName || existing.name}`, channel: existing })
+  }
+
+  const videos = await updateAndPersistVideosForChannel(channel.name)
   if (Array.isArray(videos)) {
-    repo.addChannel(name)
-    broadcastMessage('new-videos', { name, videos }, connections)
-    res.writeHead(201)
-    return res.end('Channel added')
+    repo.addChannel(channel)
+    broadcastMessage('new-videos', { name: channel.name, videos }, connections)
+    return sendJson(res, 201, {
+      message: `Added ${channel.displayName || channel.name}`,
+      channel,
+      videoCount: videos.length
+    })
   }
 
-  res.writeHead(404)
-  return res.end('Channel not found')
+  return sendJson(res, 404, { error: `Found ${channel.displayName || channel.name}, but could not load its videos. Try again later.` })
+}
+
+function sendJson (res, status, body) {
+  res.writeHead(status, { 'Content-Type': 'application/json' })
+  return res.end(JSON.stringify(body))
 }
 
 export async function deleteChannelHandler (req, res, connections = [], state = {}) {

@@ -1124,3 +1124,16 @@ summary:hover {
     border-top-color: #333;
   }
 }
+
+#add-channel-form .status {
+  margin-top: 0.5em;
+  color: var(--text-secondary);
+}
+#add-channel-form .status.error {
+  color: #c0392b;
+}
+@media (prefers-color-scheme: dark) {
+  #add-channel-form .status.error {
+    color: #ff7b6b;
+  }
+}

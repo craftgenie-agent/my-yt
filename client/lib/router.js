@@ -16,7 +16,7 @@ const routes = {
       document.querySelector('search-videos').searchHandler()
 
       const channels = await fetch(ENDPOINTS.CHANNELS).then(res => res.json())
-      document.querySelector('channels-list').dataset.list = JSON.stringify(channels.map(c => c.name).filter(Boolean))
+      document.querySelector('channels-list').dataset.list = JSON.stringify(channels.filter(c => c && c.name).map(c => ({ name: c.name, displayName: c.displayName })))
 
       document.querySelector('empty-state').dataset.hasChannels = channels.length > 0
       handleEmptyState()

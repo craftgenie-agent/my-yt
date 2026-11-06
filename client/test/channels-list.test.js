@@ -33,4 +33,17 @@ describe('channels-list', () => {
 
     assert.equal(search.value, '@channel1')
   })
+
+  it('shows the display name and filters by the stored name', async () => {
+    const el = await fixture(html`
+      <div>
+        <channels-list data-list='[{"name":"ycombinator","displayName":"Y Combinator"}]'></channels-list>
+        <input id="search" type="text">
+      </div>
+    `)
+    const channel = el.querySelector('[data-channel="ycombinator"]')
+    assert.equal(channel.textContent.trim(), 'Y Combinator')
+    channel.click()
+    assert.equal(el.querySelector('#search').value, '@ycombinator')
+  })
 })

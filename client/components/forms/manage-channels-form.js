@@ -5,10 +5,13 @@ class ManageChannelsForm extends HTMLElement {
   connectedCallback () {
     this.render()
     this.fetchData()
+    this.onChannelsChanged = () => this.fetchData()
+    window.addEventListener('channels-changed', this.onChannelsChanged)
   }
 
   disconnectedCallback () {
     this.unregisterEvents()
+    window.removeEventListener('channels-changed', this.onChannelsChanged)
   }
 
   fetchData () {
@@ -18,7 +21,7 @@ class ManageChannelsForm extends HTMLElement {
         const $container = this.querySelector('#manage-channels')
         $container.innerHTML = /* html */`
         ${channels.map(channel =>
-          /* html */`<div style="margin-bottom: 10px" tabindex=0 data-channel="${channel.name}" class="channel">❌ ${channel.name}</div>`).join('')}
+          /* html */`<div style="margin-bottom: 10px" tabindex=0 data-channel="${escapeHtml(channel.name)}" class="channel">❌ ${escapeHtml(channel.displayName ? `${channel.displayName} (@${channel.name})` : channel.name)}</div>`).join('')}
       `
       })
       .then(this.registerEvents.bind(this))
@@ -47,7 +50,7 @@ class ManageChannelsForm extends HTMLElement {
   removeChannel (event) {
     event.preventDefault()
 
-    const $channel = event.target
+    const $channel = event.target.closest('[data-channel]')
     const channelName = $channel.dataset.channel
     if (!channelName) return alert('empty channel name')
     if (!confirm(`Do you want to delete the channel ${channelName}?`)) return
@@ -67,3 +70,7 @@ class ManageChannelsForm extends HTMLElement {
   }
 }
 customElements.define('manage-channels-form', ManageChannelsForm)
+
+function escapeHtml (text = '') {
+  return String(text).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
+}

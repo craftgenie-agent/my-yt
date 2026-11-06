@@ -36,10 +36,12 @@ A clean and minimal youtube frontend supported by yt-dlp, and optionally your lo
 You start the application.
 
 Add your favourite channels in the settings page.
+Paste any YouTube link: `@name`, `name`, a channel link (`youtube.com/@name`, `/channel/UC...`, `/c/Name`, `/user/Name`) or a video link (`watch?v=`, `youtu.be/`, `/shorts/`, `/live/`). The app finds the channel and shows its name.
 
 The app will fetch the latest videos from your subscribed channels and display them in chronological order.
 
-Your subscriptions will be scraped from youtube every 30 minutes. No API key needed.
+Your subscriptions are checked every 30 minutes with `yt-dlp` (the channel's Videos tab), plus the channel's RSS feed for exact dates. No API key needed.
+If `yt-dlp` fails, the app falls back to reading the channel page.
 
 Then you can download a video to watch it locally. If you host `my-yt` on your local network you can watch videos on all your devices.
 

@@ -22,7 +22,7 @@ async function main ({ port = 3000 } = {}) {
 
   function runUpdateVideos (connections) {
     console.log('update videos')
-    updateAndPersistVideos((err, data) => {
+    return updateAndPersistVideos((err, data) => {
       if (err) return console.error(err)
       const { name, videos } = data
       if (!Array.isArray(videos)) return console.error(`Failed to fetch videos for ${name}`)
@@ -35,7 +35,7 @@ async function main ({ port = 3000 } = {}) {
       } else {
         broadcastSSE(JSON.stringify({ type: 'download-log-line', line: `no new videos for channel ${name}` }), connections)
       }
-    })
+    }).catch(error => console.error('update videos failed', error))
   }
 }
 
