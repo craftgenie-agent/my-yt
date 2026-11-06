@@ -221,6 +221,11 @@ describe('repository channels', () => {
     assert.deepEqual(r.getChannels(), [{ name: 'ycombinator', displayName: 'Y Combinator' }])
   })
 
+  test('on load, a stored link with a broken % escape does not stop the app', () => {
+    const r = loadWith([{ name: 'https://youtube.com/@name%' }, { name: 'ok' }])
+    assert.deepEqual(r.getChannels().map(c => c.name), ['https://youtube.com/@name%', 'ok'])
+  })
+
   test('on load, keeps names that need YouTube to fix (video or /c/ links)', () => {
     const r = loadWith([{ name: 'https://youtu.be/u-8KpXcPYCw' }])
     assert.deepEqual(r.getChannels(), [{ name: 'https://youtu.be/u-8KpXcPYCw' }])

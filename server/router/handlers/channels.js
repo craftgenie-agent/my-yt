@@ -11,6 +11,15 @@ export function getChannelHandler (req, res, connections = [], state = {}) {
 }
 
 export async function addChannelHandler (req, res, connections = []) {
+  try {
+    return await addChannel(req, res, connections)
+  } catch (error) {
+    console.error('[channels] Could not add the channel:', error)
+    if (!res.headersSent) return sendJson(res, 500, { error: 'Could not add this channel because of an error in the app. Check the app logs.' })
+  }
+}
+
+async function addChannel (req, res, connections) {
   const repo = getRepository()
   const parsed = await parseBody(req, res)
   if (parsed === null) return

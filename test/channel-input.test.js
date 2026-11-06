@@ -28,8 +28,15 @@ describe('parseChannelInput', () => {
     })
   }
 
-  test('handles with dots, dashes and underscores', () => {
+  test('handles with dots, dashes and underscores, with or without @', () => {
     assert.deepStrictEqual(parseChannelInput('@Some.Name-1_x'), { kind: 'handle', value: 'Some.Name-1_x' })
+    assert.deepStrictEqual(parseChannelInput('Some.Name-1_x'), { kind: 'handle', value: 'Some.Name-1_x' })
+  })
+
+  test('a link with a broken % escape is not a channel, and does not throw', () => {
+    assert.strictEqual(parseChannelInput('https://youtube.com/@name%'), null)
+    assert.strictEqual(parseChannelInput('https://www.youtube.com/c/%E0%A4%A'), null)
+    assert.strictEqual(canonicalChannelName('https://youtube.com/@name%'), null)
   })
 
   test('channel id links and bare ids', () => {
@@ -149,6 +156,7 @@ describe('resolveChannel', () => {
   })
 
   test('input that is not a YouTube link is a 400 with a clear message', async () => {
+    await assert.rejects(resolveChannel('https://youtube.com/@name%'), (err) => err instanceof ChannelInputError && err.status === 400)
     await assert.rejects(resolveChannel('https://vimeo.com/123'), (err) => {
       assert.ok(err instanceof ChannelInputError)
       assert.strictEqual(err.status, 400)

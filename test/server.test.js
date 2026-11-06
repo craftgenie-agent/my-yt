@@ -131,6 +131,26 @@ describe('server - user flow', () => {
     assert.match(body.error, /Could not find/)
   })
 
+  test('an unexpected error is a 500 with a message, not a crash', { timeout: 5000 }, async () => {
+    setYoutubeDeps({ runYtDlp: () => Promise.resolve('{"channel": "X", "uploader_id": "@x_channel"}') })
+    const { getRepository } = await import('../server/service-container.js')
+    const repo = getRepository(serverTestDir)
+    const original = repo.upsertVideos
+    repo.upsertVideos = () => { throw new Error('disk full') }
+    try {
+      const res = await fetch('http://0.0.0.0:3001/api/channels', {
+        method: 'POST',
+        body: JSON.stringify({ name: '@x_channel' })
+      })
+      assert.equal(res.status, 500)
+      const body = await res.json()
+      assert.match(body.error, /Could not add/)
+    } finally {
+      repo.upsertVideos = original
+      setYoutubeDeps({ runYtDlp: fakeYtDlp })
+    }
+  })
+
   test('get channels again', { timeout: 5000 }, async () => {
     const res = await fetch('http://0.0.0.0:3001/api/channels')
     const data = await res.json()

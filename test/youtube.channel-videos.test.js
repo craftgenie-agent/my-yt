@@ -228,6 +228,11 @@ describe('channel page parser (fallback), YouTube 2026 layout', () => {
     assert.deepStrictEqual(videos.map(v => v.id), ['NVzgt2AEvDg'])
   })
 
+  test('no network is a ScraperError too, so one channel does not stop the rest', async () => {
+    setYoutubeDeps({ runYtDlp: async () => { throw new Error('no yt-dlp') }, fetch: async () => { throw new TypeError('fetch failed') } })
+    await assert.rejects(getVideosFor('ycombinator'), (err) => err instanceof ScraperError && /fetch failed/.test(err.message))
+  })
+
   test('a 404 page is still a ScraperError with the status', async () => {
     setYoutubeDeps({ runYtDlp: async () => { throw new Error('no yt-dlp') }, fetch: fetchFor({}) })
     await assert.rejects(getVideosFor('nope'), (err) => err instanceof ScraperError && err.context.statusCode === 404)
